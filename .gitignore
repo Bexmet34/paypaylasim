@@ -1,0 +1,6 @@
+node_modules/
+.env
+database.sqlite
+*.sqlite
+.pm2/
+package-lock.json

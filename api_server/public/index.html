@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loot Paylaşım Paneli</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020617;
+      --bg-card: rgba(30, 41, 59, 0.4);
+      --primary: #0ea5e9;
+      --primary-hover: #0284c7;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f172a, #020617);
+      background-attachment: fixed;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .header-logo img {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2rem;
+      background: linear-gradient(90deg, #fff, var(--primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .total-time-badge {
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid var(--primary);
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+      box-shadow: 0 0 20px rgba(14, 165, 233, 0.2);
+    }
+
+    /* Layout Grids */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .section-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title.pending { color: var(--warning); }
+    .section-title.active { color: var(--success); }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    tr { transition: background 0.3s; }
+    tr:hover { background: rgba(255,255,255,0.02); }
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+    }
+    .user-avatar.active-avatar {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.3);
+    }
+    .user-avatar-fallback {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    
+    .user-name { font-weight: 600; font-size: 1.1rem; color: #fff; }
+    .user-id { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* Buttons */
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-approve { background: var(--success); color: #000; }
+    .btn-approve:hover { background: #059669; transform: translateY(-2px); }
+    
+    .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+    .btn-danger:hover { background: var(--danger); color: #fff; transform: translateY(-2px); }
+
+    .btn-pause { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+    .btn-resume { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
+
+    select.multiplier-select {
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      border: 1px solid var(--border);
+      padding: 0.5rem;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+    }
+    
+    select.multiplier-select option {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-weight: 500;
+    }
+
+    /* Pending List specific */
+    .pending-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .pending-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      background: rgba(245, 158, 11, 0.05);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 12px;
+    }
+    .pending-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* Controls Sidebar */
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+    .input-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .input-group input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1.1rem;
+      font-family: 'Inter', sans-serif;
+      transition: border 0.3s;
+    }
+    .input-group input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.2);
+    }
+    .btn-finish {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      color: #fff;
+      border-radius: 12px;
+      margin-top: 1rem;
+      box-shadow: 0 5px 20px rgba(14, 165, 233, 0.4);
+    }
+    .btn-finish:hover {
+      box-shadow: 0 8px 25px rgba(14, 165, 233, 0.6);
+      transform: translateY(-2px);
+    }
+
+    /* Info Section */
+    .info-section {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .info-card {
+      background: rgba(255,255,255,0.02);
+      border-top: 3px solid var(--primary);
+      padding: 1.5rem;
+      border-radius: 12px;
+    }
+    .info-card h4 { color: #fff; margin-bottom: 0.5rem; font-family: 'Outfit', sans-serif; font-size: 1.2rem;}
+    .info-card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+    /* Modals & Toasts */
+    .custom-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: none; justify-content: center; align-items: center;
+      z-index: 10000; backdrop-filter: blur(5px);
+    }
+    .custom-modal.active { display: flex; }
+    .custom-modal-content {
+      background: var(--bg); padding: 2rem; border-radius: 20px;
+      border: 1px solid var(--border); max-width: 400px; width: 90%; text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+    .custom-modal-title { color: #fff; font-size: 1.5rem; margin-bottom: 1rem; font-family: 'Outfit', sans-serif;}
+    .custom-modal-message { color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5;}
+    .custom-modal-actions { display: flex; gap: 1rem; justify-content: center;}
+    .custom-modal-actions .btn { flex: 1; padding: 0.75rem; }
+
+    .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10000; }
+    .toast {
+      background: var(--bg-card); color: #fff; padding: 1rem 1.5rem;
+      border-radius: 10px; border-left: 4px solid var(--primary);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+      animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      font-weight: 500; font-size: 0.95rem;
+    }
+    .toast.error { border-left-color: var(--danger); }
+    .toast.success { border-left-color: var(--success); }
+    .toast.warning { border-left-color: var(--warning); }
+    
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
+
+    .loading-overlay {
+      position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg);
+      display: flex; justify-content: center; align-items: center; z-index: 99999;
+      color: var(--primary); font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; transition: opacity 0.3s;
+    }
+
+    @media (max-width: 992px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      header { flex-direction: column; gap: 1rem; text-align: center; }
+      .table-responsive {
+        border: none;
+      }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      tr { margin-bottom: 1rem; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 1rem; border: 1px solid var(--border);}
+      td { border: none; padding: 0.5rem 0; display: flex; justify-content: space-between; align-items: center; }
+      td::before { content: attr(data-label); font-weight: 600; color: var(--text-muted); }
+      .user-info { justify-content: flex-end; text-align: right; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loader">🚀 Sistem Yükleniyor...</div>
+
+  <!-- Custom Modal -->
+  <div id="custom-modal" class="custom-modal">
+    <div class="custom-modal-content">
+      <h3 id="custom-modal-title" class="custom-modal-title">Onay Gerekli</h3>
+      <p id="custom-modal-message" class="custom-modal-message">Bunu yapmak istediğinize emin misiniz?</p>
+      <div class="custom-modal-actions">
+        <button class="btn btn-danger" onclick="closeCustomModal()">İptal</button>
+        <button class="btn btn-approve" id="custom-modal-confirm">Evet, Onayla</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <div class="container">
+    <header>
+      <div class="header-logo">
+        <img src="https://cdn-icons-png.flaticon.com/512/5132/5132047.png" alt="Logo">
+        <div>
+          <h1>Loot Yönetimi</h1>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Albion Online Gank & Split</p>
+        </div>
+      </div>
+      <div class="total-time-badge">
+        ⏱️ <span id="total-party-time">0.0 dk</span>
+      </div>
+    </header>
+
+    <!-- Pending Section (Only shows if there are pending users) -->
+    <div class="section-card" id="pending-section" style="display: none;">
+      <h2 class="section-title pending">⏳ Onay Bekleyen Oyuncular</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Bu oyuncular sese girdi fakat süreleri <strong>henüz başlamadı</strong>. Onay verdiğiniz an süreleri işlemeye başlar.</p>
+      <div class="pending-list" id="pending-list">
+        <!-- JS Render -->
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <!-- Active Roster -->
+      <div class="section-card">
+        <h2 class="section-title active">🔥 Aktif Kadro</h2>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Oyuncu</th>
+                <th>Durum</th>
+                <th>Net Süre</th>
+                <th>Performans Çarpanı</th>
+                <th>Aksiyon</th>
+              </tr>
+            </thead>
+            <tbody id="participants-body">
+              <!-- JS Render -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Controls Panel -->
+      <div class="section-card">
+        <h2 class="section-title" style="color: #fff;">💰 Gank'ı Bitir</h2>
+        <div class="input-group">
+          <label>Brüt Loot (Silver)</label>
+          <input type="text" id="input-gross" placeholder="Örn: 8m, 15m, 25.000.000" oninput="formatNumberInput(this)" onblur="formatInput(this)">
+        </div>
+        <div class="input-group">
+          <label>Tamir / Regear Masrafı</label>
+          <input type="text" id="input-repair" placeholder="Örn: 1.2m, 500k" oninput="formatNumberInput(this)" onblur="formatInput(this)">
+        </div>
+        <div class="input-group">
+          <label>Grup Vergisi (Opsiyonel)</label>
+          <input type="text" id="input-tax" placeholder="Boş bırakılabilir" oninput="formatNumberInput(this)" onblur="formatInput(this)">
+        </div>
+        <button class="btn btn-finish" onclick="endGankFromWeb()">🛑 Savaşi Bitir & Dağıt</button>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="section-card">
+      <h2 class="section-title" style="color: #fff;">📖 Sistem Nasıl Çalışır? (Detaylı Hesaplama)</h2>
+      <div class="info-section" style="grid-template-columns: 1fr; gap: 1rem;">
+        
+        <div class="info-card" style="text-align: left;">
+          <h4 style="color: #60a5fa;">⏱️ 1. Geçerli Süre ve Molalar</h4>
+          <p style="margin-top: 0.5rem; line-height: 1.6;">
+            • Oyuncunun süresi sese girdiği veya lider onay verdiği saniye başlar.<br>
+            • Oyuncu Discord'da <strong>"Sağırlaştır"</strong> yaparsa, AFK kanalına düşerse veya sesten çıkarsa süresi otomatik olarak <strong>Molada</strong> (Duraklatıldı) konumuna geçer.<br>
+            • Molada geçen süreler, toplam aktif kalınan zamandan düşülür. Sadece seste aktif olunan "Net Süre" hesaba katılır.
+          </p>
+        </div>
+
+        <div class="info-card" style="text-align: left;">
+          <h4 style="color: #34d399;">🌟 2. Performans Çarpanları</h4>
+          <p style="margin-top: 0.5rem; line-height: 1.6;">
+            Lider manuel olarak performansa göre çarpan verebilir. Taşıyan (1.5), İyi (1.2), Standart (1.0), Pasif (0.8), Yarı Pay (0.5) veya Pay Yok (0.0). Sistem net süreyi bu çarpanla çarparak "Ağırlıklı Süre"yi bulur.
+          </p>
+        </div>
+
+        <div class="info-card" style="text-align: left;">
+          <h4 style="color: #fbbf24;">💰 3. Final Payı ve Gümüş Dağılımı</h4>
+          <p style="margin-top: 0.5rem; line-height: 1.6;">
+            • Gank bittiğinde girdiğiniz <strong>Brüt Loot</strong>'tan, varsa Grup Vergisi ve Tamir/Regear masrafları düşülür. Kalan miktar <strong>"Net Havuz"</strong>dur.<br>
+            • Net havuz, tüm onaylı oyuncuların "Ağırlıklı Sürelerinin" toplamına bölünür. Çıkan sonuç <strong>"Dakika Başına Düşen Gümüş"</strong> değeridir.<br>
+            • Herkes kendi ağırlıklı süresi kadar (Dakika * Çarpan * Gümüş/Dk) hakkını alır. Matematiksel olarak kimsenin hakkı kimseye geçmez.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const pathParts = window.location.pathname.split('/');
+    const contentId = pathParts[pathParts.length - 1];
+
+    let contentData = null;
+    let participantsData = [];
+
+    const socket = io();
+    socket.emit('join_content', contentId);
+
+    socket.on('data_update', (data) => {
+      contentData = data.content;
+      participantsData = data.participants;
+      document.getElementById('loader').style.opacity = '0';
+      setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+      smartRenderDashboard();
+    });
+
+    socket.on('connect', () => {
+      showToast('Canlı sunucuya bağlanıldı! 🟢', 'success');
+    });
+
+    socket.on('disconnect', () => {
+      showToast('Sunucu bağlantısı koptu. Yeniden bağlanılıyor... 🔴', 'error');
+    });
+
+    function parseSilverInput(val) {
+      if(!val) return 0;
+      val = val.toString().toLowerCase().trim();
+      if (val.endsWith('m') || val.endsWith('k')) {
+         val = val.replace(/,/g, '.');
+      } else {
+         val = val.replace(/[.,]/g, '');
+      }
+      let multiplier = 1;
+      if (val.endsWith('m')) { multiplier = 1000000; val = val.replace('m', ''); }
+      else if (val.endsWith('k')) { multiplier = 1000; val = val.replace('k', ''); }
+      const num = parseFloat(val);
+      if (isNaN(num)) return 0;
+      return Math.floor(num * multiplier);
+    }
+
+    function formatNumberInput(el) {
+      let val = el.value.replace(/[^0-9mk.,]/gi, ''); // Allow only these characters
+      if (/^[0-9.,]+$/.test(val)) {
+        val = val.replace(/[.,]/g, ''); // Remove existing dots
+        el.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Add dots
+      } else {
+        el.value = val;
+      }
+    }
+
+    function formatInput(el) {
+      const parsed = parseSilverInput(el.value);
+      if(parsed > 0) {
+        el.value = parsed.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      } else {
+        el.value = "";
+      }
+    }
+
+    function renderAvatar(p, isActive) {
+      const name = p.username || p.userId;
+      const initials = name.substring(0,2).toUpperCase();
+      const cssClass = isActive ? "user-avatar active-avatar" : "user-avatar";
+      if (p.avatarUrl) {
+        return `<img src="${p.avatarUrl}" class="${cssClass}" alt="${name}">`;
+      } else {
+        return `<div class="user-avatar-fallback ${cssClass}">${initials}</div>`;
+      }
+    }
+
+    function createPendingRow(p, name) {
+      return `
+        <div class="pending-item" id="pending-${p.userId}">
+          <div class="user-info">
+            ${renderAvatar(p, false)}
+            <div>
+              <div class="user-name">${name}</div>
+              <div class="user-id">ID: ${p.userId}</div>
+            </div>
+          </div>
+          <div class="pending-actions">
+            <button class="btn btn-danger" onclick="updateParticipant('${p.userId}', 'kick', null)">❌ Reddet</button>
+            <button class="btn btn-approve" onclick="updateParticipant('${p.userId}', 'approve', null)">✅ Onayla</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function createActiveRow(p, name) {
+      return `
+        <tr id="active-${p.userId}" data-id="${p.userId}">
+          <td data-label="Oyuncu">
+            <div class="user-info">
+              ${renderAvatar(p, true)}
+              <div>
+                <div class="user-name">${name}</div>
+                <div class="user-id">ID: ${p.userId}</div>
+              </div>
+            </div>
+          </td>
+          <td data-label="Durum" class="status-cell"></td>
+          <td data-label="Net Süre" class="time-cell" style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 700;">0.0 dk</td>
+          <td data-label="Çarpan">
+            <select class="multiplier-select" id="mult-${p.userId}" onchange="updateParticipant('${p.userId}', 'multiplier', this.value)">
+              <option value="0.0">0.0 (Pay Yok)</option>
+              <option value="0.5">0.5 (Yarı Pay)</option>
+              <option value="0.8">0.8 (Pasif)</option>
+              <option value="1.0">1.0 (Standart)</option>
+              <option value="1.2">1.2 (İyi)</option>
+              <option value="1.5">1.5 (Taşıyan)</option>
+            </select>
+          </td>
+          <td data-label="Aksiyon" class="action-cell"></td>
+        </tr>
+      `;
+    }
+
+    function smartRenderDashboard() {
+      if (!contentData || !participantsData) return;
+
+      const pendingList = document.getElementById('pending-list');
+      const pendingSection = document.getElementById('pending-section');
+      const activeTbody = document.getElementById('participants-body');
+      
+      let pendingCount = 0;
+      let activeCount = 0;
+
+      // 1. Remove rows that no longer exist
+      const allPendingDOM = Array.from(pendingList.children);
+      allPendingDOM.forEach(el => {
+        const id = el.id.replace('pending-', '');
+        if (!participantsData.find(p => p.userId === id && p.status === 'PENDING')) el.remove();
+      });
+
+      const allActiveDOM = Array.from(activeTbody.querySelectorAll('tr[data-id]'));
+      allActiveDOM.forEach(el => {
+        const id = el.dataset.id;
+        if (!participantsData.find(p => p.userId === id && p.status === 'APPROVED')) el.remove();
+      });
+
+      // 2. Add or Update rows
+      participantsData.forEach(p => {
+        const name = p.username || p.userId;
+        
+        if (p.status === 'PENDING') {
+          pendingCount++;
+          let row = document.getElementById(`pending-${p.userId}`);
+          if (!row) {
+            pendingList.insertAdjacentHTML('beforeend', createPendingRow(p, name));
+          }
+        } else if (p.status === 'APPROVED') {
+          activeCount++;
+          let row = document.getElementById(`active-${p.userId}`);
+          if (!row) {
+            // Remove empty placeholder if exists
+            const placeholder = document.getElementById('empty-placeholder');
+            if (placeholder) placeholder.remove();
+
+            activeTbody.insertAdjacentHTML('beforeend', createActiveRow(p, name));
+            row = document.getElementById(`active-${p.userId}`);
+          }
+
+          // Update non-input elements intelligently
+          const isPausedBadge = p.isPaused ? 
+            `<span style="color: var(--warning); background: rgba(245, 158, 11, 0.1); padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">⏸️ Molada</span>` : 
+            `<span style="color: var(--success); background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">🟢 Aktif</span>`;
+          
+          const pauseBtnClass = p.isPaused ? 'btn-resume' : 'btn-pause';
+          const pauseBtnText = p.isPaused ? '▶️ Sürdür' : '⏸️ Mola';
+
+          const statusCell = row.querySelector('.status-cell');
+          if (statusCell.innerHTML !== isPausedBadge) statusCell.innerHTML = isPausedBadge;
+
+          const actionHtml = `
+            <div style="display:flex; gap:0.5rem; justify-content: flex-end;">
+              <button class="btn ${pauseBtnClass}" onclick="updateParticipant('${p.userId}', 'toggle_pause', null)" ${contentData.status==='COMPLETED'?'disabled':''}>${pauseBtnText}</button>
+              <button class="btn btn-danger" onclick="updateParticipant('${p.userId}', 'kick', null)" ${contentData.status==='COMPLETED'?'disabled':''}>Sil</button>
+            </div>
+          `;
+          const actionCell = row.querySelector('.action-cell');
+          if (actionCell.innerHTML !== actionHtml) actionCell.innerHTML = actionHtml;
+
+          // Update select only if it doesn't have focus
+          const select = row.querySelector(`#mult-${p.userId}`);
+          if (document.activeElement !== select) {
+            select.value = p.multiplier.toFixed(1);
+            select.disabled = contentData.status === 'COMPLETED';
+          }
+        }
+      });
+
+      pendingSection.style.display = pendingCount > 0 ? 'block' : 'none';
+      if (activeCount === 0) {
+        if (!document.getElementById('empty-placeholder')) {
+          activeTbody.innerHTML = '<tr id="empty-placeholder"><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 2rem;">Henüz aktif oyuncu bulunmuyor.</td></tr>';
+        }
+      }
+      
+      updateLocalTimers();
+    }
+
+    // A fast local loop that just updates the "Net Süre" text without making API calls
+    function updateLocalTimers() {
+      if (!contentData || !participantsData) return;
+      let totalTime = 0;
+      const now = Date.now();
+
+      participantsData.forEach(p => {
+        if (p.status !== 'APPROVED') return;
+
+        let activeMs = 0;
+        if (contentData.startTime > 0) {
+          const effectiveEndTime = p.isPaused ? p.lastPauseStart : (contentData.endTime || now);
+          activeMs = effectiveEndTime - Math.max(p.joinTime, contentData.startTime) - (p.totalPausedTime || 0);
+        }
+        let activeMins = Math.max(0, activeMs / 60000);
+        totalTime += activeMins;
+
+        const row = document.getElementById(`active-${p.userId}`);
+        if (row) {
+          const timeText = activeMins.toFixed(1) + ' dk';
+          const timeCell = row.querySelector('.time-cell');
+          if (timeCell.innerText !== timeText) timeCell.innerText = timeText;
+        }
+      });
+
+      document.getElementById('total-party-time').innerText = totalTime.toFixed(1) + ' dk';
+    }
+
+    setInterval(updateLocalTimers, 1000);
+
+    let customModalCallback = null;
+    function showConfirm(title, message, callback) {
+      document.getElementById('custom-modal-title').innerText = title;
+      document.getElementById('custom-modal-message').innerText = message;
+      document.getElementById('custom-modal').classList.add('active');
+      customModalCallback = callback;
+    }
+    function closeCustomModal() {
+      document.getElementById('custom-modal').classList.remove('active');
+      customModalCallback = null;
+    }
+    document.getElementById('custom-modal-confirm').addEventListener('click', () => {
+      if(customModalCallback) customModalCallback();
+      closeCustomModal();
+    });
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerText = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    async function updateParticipant(userId, action, value) {
+      try {
+        await fetch(`/api/participant/${contentId}/${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, value })
+        });
+        if(action === 'approve') showToast('Oyuncu onaylandı, süresi başladı!', 'success');
+        else if(action === 'kick') showToast('Oyuncu silindi.', 'warning');
+        else if(action === 'multiplier') showToast('Çarpan güncellendi.', 'success');
+      } catch (e) {
+        showToast('İşlem başarısız oldu!', 'error');
+      }
+    }
+
+    async function endGankFromWeb() {
+      const gross = parseSilverInput(document.getElementById('input-gross').value);
+      const repair = parseSilverInput(document.getElementById('input-repair').value);
+      const tax = parseSilverInput(document.getElementById('input-tax').value);
+
+      if(gross <= 0) {
+        showToast('Lütfen geçerli bir Brüt Loot (Örn: 8m) girin.', 'warning');
+        return;
+      }
+
+      showConfirm('Savaşı Bitir', 'Savaşı bitirip sonuçları Discord kanalına göndermek istediğinize emin misiniz? Bu işlem geri alınamaz!', async () => {
+        try {
+          showToast('Hesaplanıyor, lütfen bekleyin...', 'warning');
+          const res = await fetch(`/api/end_gank_web`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contentId, gross, repair, tax })
+          });
+          const data = await res.json();
+          if(data.success) {
+            showToast('Başarılı! Sonuçlar Discord kanalına gönderildi.', 'success');
+          } else {
+            showToast('Hata: ' + data.error, 'error');
+          }
+        } catch (e) {
+          showToast('Sunucu ile bağlantı kurulamadı!', 'error');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

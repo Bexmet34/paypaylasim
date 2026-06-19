@@ -1,0 +1,24 @@
+{
+  "name": "paypaylasim",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "cors": "^2.8.6",
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pm2": "^7.0.1",
+    "socket.io": "^4.8.3",
+    "uuid": "^14.0.0"
+  }
+}
