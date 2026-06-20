@@ -309,6 +309,21 @@ async function handleModal(interaction, client) {
     db.prepare('UPDATE contents SET status = ?, deleteVcWhenEmpty = 1 WHERE contentId = ?').run('COMPLETED', contentId);
     db.prepare('UPDATE participants SET isPaused = 1, lastPauseStart = ? WHERE contentId = ? AND isPaused = 0').run(endTime, contentId);
 
+    try {
+      const vc = await interaction.client.channels.fetch(content.voiceChannelId).catch(() => null);
+      if (vc && vc.members.size === 0) {
+        setTimeout(async () => {
+          try {
+            const currentVc = await interaction.client.channels.fetch(vc.id).catch(()=>null);
+            if (currentVc && currentVc.members.size === 0) {
+              await currentVc.delete().catch(()=>null);
+              db.prepare('UPDATE contents SET deleteVcWhenEmpty = 0 WHERE voiceChannelId = ?').run(vc.id);
+            }
+          } catch(e){}
+        }, 30000);
+      }
+    } catch(e) {}
+
     await interaction.deferReply();
     
     try {

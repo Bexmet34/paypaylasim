@@ -239,6 +239,24 @@ function startServer(discordClient) {
       
       db.prepare('UPDATE participants SET isPaused = 1, lastPauseStart = ? WHERE contentId = ? AND isPaused = 0').run(endTime, contentId);
 
+      // Check if voice channel is empty right now
+      if (globalDiscordClient && content.voiceChannelId) {
+        try {
+          const vc = await globalDiscordClient.channels.fetch(content.voiceChannelId).catch(() => null);
+          if (vc && vc.members.size === 0) {
+            setTimeout(async () => {
+              try {
+                const currentVc = await globalDiscordClient.channels.fetch(vc.id).catch(()=>null);
+                if (currentVc && currentVc.members.size === 0) {
+                  await currentVc.delete().catch(()=>null);
+                  db.prepare('UPDATE contents SET deleteVcWhenEmpty = 0 WHERE voiceChannelId = ?').run(vc.id);
+                }
+              } catch(e){}
+            }, 30000);
+          }
+        } catch(e) {}
+      }
+
       // Close discord message
       try {
         if (discordClient && content.channelId && content.messageId) {
