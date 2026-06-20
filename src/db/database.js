@@ -24,6 +24,23 @@ db.prepare(`
   )
 `).run();
 
+try {
+  const tableInfo = db.pragma('table_info(contents)');
+  const columns = tableInfo.map(c => c.name);
+
+  if (!columns.includes('channelId')) {
+    db.prepare('ALTER TABLE contents ADD COLUMN channelId TEXT').run();
+  }
+  if (!columns.includes('botShare')) {
+    db.prepare('ALTER TABLE contents ADD COLUMN botShare INTEGER DEFAULT 0').run();
+  }
+  if (!columns.includes('deleteVcWhenEmpty')) {
+    db.prepare('ALTER TABLE contents ADD COLUMN deleteVcWhenEmpty INTEGER DEFAULT 0').run();
+  }
+} catch (err) {
+  console.error("Migration error:", err);
+}
+
 // Create table for participants
 db.prepare(`
   CREATE TABLE IF NOT EXISTS participants (
