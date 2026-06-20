@@ -144,21 +144,10 @@ async function handleButton(interaction) {
     if (!content) return interaction.reply({ content: 'Bu content artık aktif değil.', flags: 64 });
     if (interaction.user.id !== content.leaderId) return interaction.reply({ content: 'Bu butonu sadece parti lideri kullanabilir!', flags: 64 });
 
-    const os = require('os');
-    const interfaces = os.networkInterfaces();
-    let localIp = '127.0.0.1';
-    for (const k in interfaces) {
-      for (const k2 in interfaces[k]) {
-        const address = interfaces[k][k2];
-        if (address.family === 'IPv4' && !address.internal) {
-          localIp = address.address;
-          break;
-        }
-      }
-    }
+    const vpsIp = process.env.VPS_IP || '155.254.35.250';
 
     return interaction.reply({ 
-      content: `👑 **Web Kontrol Paneli Linkiniz:**\n🔹 [Bilgisayardan Panele Git (Localhost)](http://127.0.0.1:3000/dashboard/${contentId})\n🔹 [Telefondan Panele Git (Aynı Ağ)](http://${localIp}:3000/dashboard/${contentId})\n\n*(Bu linki kimseyle paylaşmayın)*`, 
+      content: `👑 **Web Kontrol Paneli Linkiniz:**\n🔹 [Panele Git](http://${vpsIp}:3000/dashboard/${contentId})\n\n*(Bu linki kimseyle paylaşmayın)*`, 
       flags: 64 
     });
   }
@@ -259,21 +248,10 @@ async function handleModal(interaction, client) {
       db.prepare('UPDATE contents SET messageId = ?, channelId = ? WHERE contentId = ?').run(replyMsg.id, interaction.channelId, contentId);
 
       // Lidere özel web linki
-      const os = require('os');
-      const interfaces = os.networkInterfaces();
-      let localIp = '127.0.0.1';
-      for (const k in interfaces) {
-        for (const k2 in interfaces[k]) {
-          const address = interfaces[k][k2];
-          if (address.family === 'IPv4' && !address.internal) {
-            localIp = address.address;
-            break;
-          }
-        }
-      }
+      const vpsIp = process.env.VPS_IP || '155.254.35.250';
       
       await interaction.followUp({ 
-        content: `👑 **Web Kontrol Paneli Linkiniz:**\n🔹 [Bilgisayardan Panele Git (Localhost)](http://127.0.0.1:3000/dashboard/${contentId})\n🔹 [Telefondan Panele Git (Aynı Ağ)](http://${localIp}:3000/dashboard/${contentId})\n\n*(Bu linki kimseyle paylaşmayın)*`, 
+        content: `👑 **Web Kontrol Paneli Linkiniz:**\n🔹 [Panele Git](http://${vpsIp}:3000/dashboard/${contentId})\n\n*(Bu linki kimseyle paylaşmayın)*`, 
         flags: 64 
       });
 
