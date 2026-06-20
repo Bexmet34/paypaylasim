@@ -246,19 +246,17 @@ function startServer(discordClient) {
           if (channel) {
             const origMsg = await channel.messages.fetch(content.messageId).catch(() => null);
             if (origMsg) {
-              const { EmbedBuilder } = require('discord.js');
-              const oldEmbeds = origMsg.embeds;
-              const newEmbed = EmbedBuilder.from(oldEmbeds[0]);
-              newEmbed.setDescription('🛑 **BU CONTENT KAPANMIŞTIR** 🛑\n\n' + (newEmbed.data.description || ''));
-              newEmbed.setColor('#FF0000');
-              await origMsg.edit({ embeds: [newEmbed], components: [] }).catch(()=>{});
+              // Post Final Embed
+              const calcData = calculateData(contentId);
+              const finalContent = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(contentId);
+              const finalEmbed = generateFinalLootEmbed(finalContent, calcData);
+              await origMsg.edit({ embeds: [finalEmbed], components: [] }).catch(()=>{});
+            } else {
+              const calcData = calculateData(contentId);
+              const finalContent = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(contentId);
+              const finalEmbed = generateFinalLootEmbed(finalContent, calcData);
+              await channel.send({ embeds: [finalEmbed] }).catch(()=>{});
             }
-
-            // Post Final Embed
-            const calcData = calculateData(contentId);
-            const finalContent = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(contentId);
-            const finalEmbed = generateFinalLootEmbed(finalContent, calcData);
-            await channel.send({ embeds: [finalEmbed] }).catch(()=>{});
           }
         }
       } catch (e) { console.error("Discord error on end_gank_web:", e); }
