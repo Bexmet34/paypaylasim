@@ -294,8 +294,9 @@ async function handleModal(interaction, client) {
     db.prepare('UPDATE contents SET totalLoot = ?, repairCost = ?, botShare = ?, endTime = ? WHERE contentId = ?')
       .run(totalLoot, repairCost, botShare, endTime, contentId);
 
+    let origMsg = null;
     try {
-      const origMsg = await interaction.channel.messages.fetch(content.messageId).catch(() => null);
+      origMsg = await interaction.channel.messages.fetch(content.messageId).catch(() => null);
       if (origMsg) {
         const oldEmbeds = origMsg.embeds;
         const newEmbed = EmbedBuilder.from(oldEmbeds[0]);
@@ -330,7 +331,11 @@ async function handleModal(interaction, client) {
       
       const finalEmbed = generateFinalLootEmbed(finalContent, calcData);
       
-      await interaction.channel.send({ embeds: [finalEmbed] }).catch(()=>{});
+      if (origMsg) {
+        await origMsg.edit({ embeds: [finalEmbed], components: [] }).catch(()=>{});
+      } else {
+        await interaction.channel.send({ embeds: [finalEmbed] }).catch(()=>{});
+      }
       await interaction.editReply({ content: '✅ Gank başarıyla sonlandırıldı ve sonuçlar web API tarafından hesaplandı.', flags: 64 });
     } catch (apiError) {
       console.error("API Error:", apiError);
@@ -339,7 +344,11 @@ async function handleModal(interaction, client) {
       const calcData = calculateParticipantData(finalContent, participants);
       const finalEmbed = generateFinalLootEmbed(finalContent, calcData);
       
-      await interaction.channel.send({ embeds: [finalEmbed] }).catch(()=>{});
+      if (origMsg) {
+        await origMsg.edit({ embeds: [finalEmbed], components: [] }).catch(()=>{});
+      } else {
+        await interaction.channel.send({ embeds: [finalEmbed] }).catch(()=>{});
+      }
       await interaction.editReply({ content: '⚠️ Yerel API ulaşılamadı, sonuçlar bot içerisinde hesaplandı.', flags: 64 });
     }
   }

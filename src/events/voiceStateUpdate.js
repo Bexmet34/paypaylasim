@@ -18,13 +18,15 @@ module.exports = {
         if (vc && vc.members.size === 0) {
           const cRow = db.prepare('SELECT * FROM contents WHERE voiceChannelId = ? ORDER BY startTime DESC LIMIT 1').get(vc.id);
           if (cRow && cRow.deleteVcWhenEmpty === 1) {
-            try {
-              const currentVc = await oldState.client.channels.fetch(vc.id).catch(()=>null);
-              if (currentVc && currentVc.members.size === 0) {
-                await currentVc.delete().catch(()=>null);
-                db.prepare('UPDATE contents SET deleteVcWhenEmpty = 0 WHERE voiceChannelId = ?').run(vc.id);
-              }
-            } catch(e){}
+            setTimeout(async () => {
+              try {
+                const currentVc = await oldState.client.channels.fetch(vc.id).catch(()=>null);
+                if (currentVc && currentVc.members.size === 0) {
+                  await currentVc.delete().catch(()=>null);
+                  db.prepare('UPDATE contents SET deleteVcWhenEmpty = 0 WHERE voiceChannelId = ?').run(vc.id);
+                }
+              } catch(e){}
+            }, 30000);
           }
         }
       }
