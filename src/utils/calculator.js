@@ -49,7 +49,8 @@ function calculateParticipantData(content, participants) {
   }
 
   const botShare = content.botShare || 0;
-  const netPool = content.totalLoot - content.repairCost - botShare;
+  const silverBag = content.silverBag || 0;
+  const netPool = content.totalLoot - content.repairCost - botShare + silverBag;
   const silverPerMinute = totalPartyMinutes > 0 ? netPool / totalPartyMinutes : 0;
 
   for (const r of results) {
@@ -105,8 +106,9 @@ function generateFinalLootEmbed(content, calculatedData) {
 👥 **Katılımcı Sayısı:** ${participantCount} Kişi
 
 📊 **HESAPLAMA DETAYLARI**
-💵 **Brüt Loot:** \`${content.totalLoot.toLocaleString()}\` Silver
-🛠️ **Toplam Tamir:** \`-${content.repairCost.toLocaleString()}\` Silver *(Kişi Başı: ${perPersonRepair.toLocaleString()})*
+💵 **Toplam Loot:** \`${content.totalLoot.toLocaleString()}\` Silver
+🛠️ **Regear:** \`-${content.repairCost.toLocaleString()}\` Silver *(Kişi Başı: ${perPersonRepair.toLocaleString()})*
+💰 **Silver Bag:** \`+${(content.silverBag || 0).toLocaleString()}\` Silver
 ` + 
       (content.botShare ? `💼 **Özel Kesinti:** \`-${content.botShare.toLocaleString()}\` Silver\n` : '') +
       `

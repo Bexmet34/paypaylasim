@@ -12,34 +12,39 @@ const db = new Database(dbPath);
 let io;
 let globalDiscordClient;
 
+async function getEnrichedParticipants(contentId) {
+  const participants = db.prepare('SELECT * FROM participants WHERE contentId = ?').all(contentId);
+  for (let p of participants) {
+    p.username = p.userId;
+    p.avatarUrl = '';
+    if (globalDiscordClient) {
+      try {
+        const guild = globalDiscordClient.guilds.cache.get(process.env.GUILD_ID);
+        if (guild) {
+          const member = guild.members.cache.get(p.userId) || await guild.members.fetch(p.userId).catch(() => null);
+          if (member) {
+            p.username = member.nickname || member.displayName || member.user.globalName || member.user.username;
+            p.avatarUrl = member.user.displayAvatarURL({ size: 64 });
+          }
+        } else {
+          const user = globalDiscordClient.users.cache.get(p.userId) || await globalDiscordClient.users.fetch(p.userId).catch(() => null);
+          if (user) {
+            p.username = user.globalName || user.username;
+            p.avatarUrl = user.displayAvatarURL({ size: 64 });
+          }
+        }
+      } catch(e) {}
+    }
+  }
+  return participants;
+}
+
 async function emitUpdate(contentId) {
   if (!io) return;
   try {
     const content = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(contentId);
     if (!content) return;
-    const participants = db.prepare('SELECT * FROM participants WHERE contentId = ?').all(contentId);
-    for (let p of participants) {
-      p.username = p.userId;
-      p.avatarUrl = '';
-      if (globalDiscordClient) {
-        try {
-          const guild = globalDiscordClient.guilds.cache.get(process.env.GUILD_ID);
-          if (guild) {
-            const member = guild.members.cache.get(p.userId) || await guild.members.fetch(p.userId).catch(() => null);
-            if (member) {
-              p.username = member.nickname || member.displayName || member.user.globalName || member.user.username;
-              p.avatarUrl = member.user.displayAvatarURL({ size: 64 });
-            }
-          } else {
-            const user = globalDiscordClient.users.cache.get(p.userId) || await globalDiscordClient.users.fetch(p.userId).catch(() => null);
-            if (user) {
-              p.username = user.globalName || user.username;
-              p.avatarUrl = user.displayAvatarURL({ size: 64 });
-            }
-          }
-        } catch(e) {}
-      }
-    }
+    const participants = await getEnrichedParticipants(contentId);
     io.to(contentId).emit('data_update', { content, participants });
   } catch (err) {
     console.error('Socket emitUpdate error:', err);
@@ -76,30 +81,7 @@ function startServer(discordClient) {
       const content = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(req.params.contentId);
       if (!content) return res.status(404).json({ error: 'Content not found' });
 
-      const participants = db.prepare('SELECT * FROM participants WHERE contentId = ?').all(req.params.contentId);
-
-      for (let p of participants) {
-        p.username = p.userId;
-        p.avatarUrl = '';
-        if (discordClient) {
-          try {
-            const guild = discordClient.guilds.cache.get(process.env.GUILD_ID);
-            if (guild) {
-              const member = guild.members.cache.get(p.userId) || await guild.members.fetch(p.userId).catch(() => null);
-              if (member) {
-                p.username = member.nickname || member.displayName || member.user.globalName || member.user.username;
-                p.avatarUrl = member.user.displayAvatarURL({ size: 64 });
-              }
-            } else {
-              const user = discordClient.users.cache.get(p.userId) || await discordClient.users.fetch(p.userId).catch(() => null);
-              if (user) {
-                p.username = user.globalName || user.username;
-                p.avatarUrl = user.displayAvatarURL({ size: 64 });
-              }
-            }
-          } catch(e) {}
-        }
-      }
+      const participants = await getEnrichedParticipants(req.params.contentId);
 
       res.json({ content, participants });
     } catch (error) {
@@ -137,7 +119,10 @@ function startServer(discordClient) {
       }
 
       emitUpdate(contentId);
-      res.json({ success: true });
+      
+      const content = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(contentId);
+      const participants = await getEnrichedParticipants(contentId);
+      res.json({ success: true, content, participants });
     } catch (error) {
       console.error('API POST /participant Error:', error);
       res.status(500).json({ error: error.message, stack: error.stack });
@@ -156,8 +141,9 @@ function startServer(discordClient) {
     const marketTax = Math.floor(grossLoot * marketTaxRate);
     const guildTax = content.botShare || 0; 
     const repairCosts = content.repairCost || 0;
+    const silverBag = content.silverBag || 0;
     
-    const netPool = grossLoot - marketTax - guildTax - repairCosts;
+    const netPool = grossLoot - marketTax - guildTax - repairCosts + silverBag;
     const endTime = content.endTime || Date.now();
     const contentDurationMin = content.startTime > 0 ? (endTime - content.startTime) / 60000 : 0;
 
@@ -226,7 +212,7 @@ function startServer(discordClient) {
   // API: End Gank from Web Dashboard
   app.post('/api/end_gank_web', async (req, res) => {
     try {
-      const { contentId, gross, repair, tax } = req.body;
+      const { contentId, gross, repair, tax, silverBag } = req.body;
       const content = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(contentId);
       if (!content) return res.status(404).json({ error: 'Content not found', success: false });
 
@@ -234,8 +220,8 @@ function startServer(discordClient) {
 
       const endTime = Date.now();
 
-      db.prepare('UPDATE contents SET totalLoot = ?, repairCost = ?, botShare = ?, endTime = ?, status = ?, deleteVcWhenEmpty = 1 WHERE contentId = ?')
-        .run(gross, repair, tax, endTime, 'COMPLETED', contentId);
+      db.prepare('UPDATE contents SET totalLoot = ?, repairCost = ?, botShare = ?, silverBag = ?, endTime = ?, status = ?, deleteVcWhenEmpty = 1 WHERE contentId = ?')
+        .run(gross, repair, tax, silverBag || 0, endTime, 'COMPLETED', contentId);
       
       db.prepare('UPDATE participants SET isPaused = 1, lastPauseStart = ? WHERE contentId = ? AND isPaused = 0').run(endTime, contentId);
 
@@ -280,7 +266,10 @@ function startServer(discordClient) {
       } catch (e) { console.error("Discord error on end_gank_web:", e); }
 
       emitUpdate(contentId);
-      res.json({ success: true });
+      
+      const updatedContent = db.prepare('SELECT * FROM contents WHERE contentId = ?').get(contentId);
+      const participants = await getEnrichedParticipants(contentId);
+      res.json({ success: true, content: updatedContent, participants });
     } catch (error) {
       res.status(500).json({ error: error.message, success: false });
     }

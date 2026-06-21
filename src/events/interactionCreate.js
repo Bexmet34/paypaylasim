@@ -32,6 +32,46 @@ module.exports = {
 async function handleButton(interaction) {
   const { customId } = interaction;
 
+  if (customId.startsWith('join_content_')) {
+    const contentId = customId.replace('join_content_', '');
+    const content = db.prepare('SELECT * FROM contents WHERE contentId = ? AND status = ?').get(contentId, 'ACTIVE');
+    if (!content) return interaction.reply({ content: 'Bu content artık aktif değil.', flags: 64 });
+
+    // Check voice channel
+    const member = interaction.member;
+    if (!member.voice.channelId || member.voice.channelId !== content.voiceChannelId) {
+      return interaction.reply({ content: `❌ Katılmak için önce bu ses kanalına katılmalısınız: <#${content.voiceChannelId}>`, flags: 64 });
+    }
+
+    const p = db.prepare('SELECT * FROM participants WHERE contentId = ? AND userId = ?').get(contentId, interaction.user.id);
+    if (p) {
+      if (p.status === 'APPROVED') {
+        return interaction.reply({ content: '✅ Zaten bu contente katıldınız ve onaylandınız.', flags: 64 });
+      } else if (p.status === 'PENDING') {
+        return interaction.reply({ 
+          content: `⏳ **Katılım talebiniz zaten alınmış durumda, lider onayı bekleniyor.**\n\nBu süre zarfında Seste baş konuş ile konuşmak zorundasınız. Lider onayladıktan sonra normal konuşmaya geçeceksiniz.\n\nLiderden seti öğrenin, party'nin bulunduğu yeri öğrenin ve oraya gidin. Party lideri siz takımın yanına gittiğinizde onaylayacaktır.`, 
+          flags: 64 
+        });
+      }
+    }
+
+    const now = Date.now();
+    db.prepare(`
+      INSERT INTO participants (contentId, userId, joinTime, leaveTime, isPaused, lastPauseStart, totalPausedTime, status, multiplier, bonusMinutes, penaltyMinutes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(contentId, interaction.user.id, now, null, 1, now, 0, 'PENDING', 1.0, 0, 0);
+
+    const { updateSingleActiveEmbed } = require('../utils/embedUpdater');
+    updateSingleActiveEmbed(interaction.client, contentId);
+    const { emitUpdate } = require('../../api_server/server');
+    emitUpdate(contentId);
+
+    return interaction.reply({
+      content: `Content katılım talebin alındı. Content lideri onayı bekliyor.\n\nBu süre zarfında Seste baş konuş ile konuşmak zorundasın. Lider onayladıktan sonra normal konuşmaya geçeceksiniz.\n\nLiderden seti öğrenin, party'nin bulunduğu yeri öğrenin ve oraya gidin. Party lideri siz takımın yanına gittiğinizde onaylayacaktır.`,
+      flags: 64
+    });
+  }
+
   if (customId.startsWith('toggle_pause_')) {
     const contentId = customId.replace('toggle_pause_', '');
     const content = db.prepare('SELECT * FROM contents WHERE contentId = ? AND status = ?').get(contentId, 'ACTIVE');
@@ -187,22 +227,36 @@ async function handleModal(interaction, client) {
 
       const channelName = `Gank-${nextNum}`;
       const title = channelName;
+      const permissionOverwrites = [
+        {
+          id: guild.roles.everyone.id,
+          deny: ['Connect', 'ViewChannel']
+        },
+        {
+          id: leaderId,
+          allow: ['Connect', 'ViewChannel', 'ManageChannels']
+        }
+      ];
+
+      const allowedRoles = [
+        process.env.MEMBERS_ROLE_ID,
+        process.env.FIREAND_ROLE_ID,
+        process.env.ALLIANCE_ROLE_ID
+      ].filter(Boolean);
+
+      for (const roleId of allowedRoles) {
+        permissionOverwrites.push({
+          id: roleId.trim(),
+          allow: ['Connect', 'ViewChannel']
+        });
+      }
 
       const voiceChannel = await guild.channels.create({
         name: channelName,
         type: ChannelType.GuildVoice,
         parent: categoryId,
         userLimit: limit,
-        permissionOverwrites: [
-          {
-            id: guild.roles.everyone.id,
-            allow: ['Connect', 'ViewChannel']
-          },
-          {
-            id: leaderId,
-            allow: ['Connect', 'ViewChannel', 'ManageChannels']
-          }
-        ]
+        permissionOverwrites: permissionOverwrites
       });
 
       const createTime = Date.now();
@@ -223,6 +277,12 @@ async function handleModal(interaction, client) {
       };
       const embed = generateActiveEmbed(tempContent);
 
+      const joinBtn = new ButtonBuilder()
+        .setCustomId(`join_content_${contentId}`)
+        .setLabel('Katılmak İstiyorum')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('⚔️');
+
       const pauseBtn = new ButtonBuilder()
         .setCustomId(`toggle_pause_${contentId}`)
         .setLabel('Mola / Devam')
@@ -241,7 +301,7 @@ async function handleModal(interaction, client) {
         .setStyle(ButtonStyle.Primary)
         .setEmoji('🌐');
 
-      const row = new ActionRowBuilder().addComponents(pauseBtn, startTimerBtn, panelBtn);
+      const row = new ActionRowBuilder().addComponents(joinBtn, pauseBtn, startTimerBtn, panelBtn);
 
       const replyMsg = await interaction.editReply({ embeds: [embed], components: [row] });
 

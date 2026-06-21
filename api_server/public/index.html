@@ -375,7 +375,10 @@
     <!-- Pending Section (Only shows if there are pending users) -->
     <div class="section-card" id="pending-section" style="display: none;">
       <h2 class="section-title pending">⏳ Onay Bekleyen Oyuncular</h2>
-      <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Bu oyuncular sese girdi fakat süreleri <strong>henüz başlamadı</strong>. Onay verdiğiniz an süreleri işlemeye başlar.</p>
+      <p style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem;">Bu oyuncular katılmak istediğini belirtti fakat süreleri <strong>henüz başlamadı</strong>. Onay verdiğiniz an süreleri işlemeye başlar.</p>
+      <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 600; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 8px;">
+        ⚠️ Kişi yanınızda mı kontrol edin!
+      </div>
       <div class="pending-list" id="pending-list">
         <!-- JS Render -->
       </div>
@@ -407,12 +410,16 @@
       <div class="section-card">
         <h2 class="section-title" style="color: #fff;">💰 Gank'ı Bitir</h2>
         <div class="input-group">
-          <label>Brüt Loot (Silver)</label>
+          <label>Toplam Loot (Silver)</label>
           <input type="text" id="input-gross" placeholder="Örn: 8m, 15m, 25.000.000" oninput="formatNumberInput(this)" onblur="formatInput(this)">
         </div>
         <div class="input-group">
-          <label>Tamir / Regear Masrafı</label>
+          <label>Regear (Silver)</label>
           <input type="text" id="input-repair" placeholder="Örn: 1.2m, 500k" oninput="formatNumberInput(this)" onblur="formatInput(this)">
+        </div>
+        <div class="input-group">
+          <label>Silver Bag Miktarı (Silver)</label>
+          <input type="text" id="input-silver-bag" placeholder="Örn: 500k, 2m" oninput="formatNumberInput(this)" onblur="formatInput(this)">
         </div>
         <div class="input-group">
           <label>Grup Vergisi (Opsiyonel)</label>
@@ -721,11 +728,17 @@
 
     async function updateParticipant(userId, action, value) {
       try {
-        await fetch(`/api/participant/${contentId}/${userId}`, {
+        const res = await fetch(`/api/participant/${contentId}/${userId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action, value })
         });
+        const data = await res.json();
+        if (data.success && data.content && data.participants) {
+          contentData = data.content;
+          participantsData = data.participants;
+          smartRenderDashboard();
+        }
         if(action === 'approve') showToast('Oyuncu onaylandı, süresi başladı!', 'success');
         else if(action === 'kick') showToast('Oyuncu silindi.', 'warning');
         else if(action === 'multiplier') showToast('Çarpan güncellendi.', 'success');
@@ -737,10 +750,11 @@
     async function endGankFromWeb() {
       const gross = parseSilverInput(document.getElementById('input-gross').value);
       const repair = parseSilverInput(document.getElementById('input-repair').value);
+      const silverBag = parseSilverInput(document.getElementById('input-silver-bag').value);
       const tax = parseSilverInput(document.getElementById('input-tax').value);
 
       if(gross <= 0) {
-        showToast('Lütfen geçerli bir Brüt Loot (Örn: 8m) girin.', 'warning');
+        showToast('Lütfen geçerli bir Toplam Loot (Örn: 8m) girin.', 'warning');
         return;
       }
 
@@ -750,11 +764,16 @@
           const res = await fetch(`/api/end_gank_web`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contentId, gross, repair, tax })
+            body: JSON.stringify({ contentId, gross, repair, tax, silverBag })
           });
           const data = await res.json();
           if(data.success) {
             showToast('Başarılı! Sonuçlar Discord kanalına gönderildi.', 'success');
+            if (data.content && data.participants) {
+              contentData = data.content;
+              participantsData = data.participants;
+              smartRenderDashboard();
+            }
           } else {
             showToast('Hata: ' + data.error, 'error');
           }

@@ -37,6 +37,9 @@ try {
   if (!columns.includes('deleteVcWhenEmpty')) {
     db.prepare('ALTER TABLE contents ADD COLUMN deleteVcWhenEmpty INTEGER DEFAULT 0').run();
   }
+  if (!columns.includes('silverBag')) {
+    db.prepare('ALTER TABLE contents ADD COLUMN silverBag INTEGER DEFAULT 0').run();
+  }
 } catch (err) {
   console.error("Migration error:", err);
 }

@@ -49,7 +49,7 @@ function generateActiveEmbed(content) {
 
   const embed = new EmbedBuilder()
     .setTitle(`⚔️ ${content.title}`)
-    .setDescription(`**Lider:** <@${content.leaderId}>\n**Kişi Sınırı:** ${content.maxPlayers > 0 ? content.maxPlayers : 'Limitsiz'}\n**Ses Kanalı:** <#${content.voiceChannelId}>\n\n${durationText}\n\nSisteme kayıt olmak için yukarıdaki **Ses Kanalına** katılmanız yeterlidir. (Otomatik Kayıt)\n\nEğer AFK kalmanız veya çıkmanız gerekirse **[ Mola / Devam ]** butonunu kullanın.\n\n**Katılımcılar ve Süreleri:**`)
+    .setDescription(`**Lider:** <@${content.leaderId}>\n**Kişi Sınırı:** ${content.maxPlayers > 0 ? content.maxPlayers : 'Limitsiz'}\n**Ses Kanalı:** <#${content.voiceChannelId}>\n\n${durationText}\n\nSisteme kayıt olmak için önce yukarıdaki **Ses Kanalına** katılmalı, ardından aşağıdaki **Katılmak İstiyorum** butonuna basmalısınız.\n\nEğer AFK kalmanız veya çıkmanız gerekirse **[ Mola / Devam ]** butonunu kullanın.\n\n**Katılımcılar ve Süreleri:**`)
     .setColor('#00FF00')
     .setTimestamp();
 

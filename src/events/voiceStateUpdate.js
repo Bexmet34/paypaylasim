@@ -31,32 +31,8 @@ module.exports = {
         }
       }
 
-      // 1. AUTO-JOIN LOGIC
-      if (newState.channelId) {
-        // Is this an active gank channel?
-        const activeContent = db.prepare('SELECT * FROM contents WHERE voiceChannelId = ? AND status = ?').get(newState.channelId, 'ACTIVE');
-        if (activeContent) {
-          // Check if user is already in participants
-          const existingParticipant = db.prepare('SELECT * FROM participants WHERE contentId = ? AND userId = ?').get(activeContent.contentId, userId);
-          
-          if (!existingParticipant) {
-            // User joined an active gank channel, auto-register them!
-            const isDeafened = newState.serverDeaf || newState.selfDeaf;
-            const isPaused = isDeafened ? 1 : 0;
-            const lastPauseStart = isPaused ? now : 0;
-            
-            db.prepare(`
-              INSERT INTO participants (contentId, userId, joinTime, leaveTime, isPaused, lastPauseStart, totalPausedTime, status, multiplier, bonusMinutes, penaltyMinutes)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(activeContent.contentId, userId, now, null, 1, now, 0, 'PENDING', 1.0, 0, 0);
+      // 1. AUTO-JOIN LOGIC REMOVED (Users must explicitly click "Katılmak İstiyorum" under the Discord embed)
 
-            const { updateSingleActiveEmbed } = require('../utils/embedUpdater');
-            updateSingleActiveEmbed(newState.client, activeContent.contentId);
-            const { emitUpdate } = require('../../api_server/server');
-            emitUpdate(activeContent.contentId);
-          }
-        }
-      }
 
       // 2. AUTO-PAUSE LOGIC
       // 2. AUTO-PAUSE LOGIC
