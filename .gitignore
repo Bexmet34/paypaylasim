@@ -4,3 +4,5 @@ database.sqlite
 *.sqlite
 .pm2/
 package-lock.json
+deploy_config.json
+
